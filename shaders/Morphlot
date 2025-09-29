@@ -1,0 +1,261 @@
+float f0(float x) { return x; } // take a guess.... you are probably correct
+float f1(float x) { return x * x; }
+float f2(float x) { return x * x * x; }
+float f3(float x) { return sin(x); }
+float f4(float x) { return cos(sinh(x)); }
+float ease(float x); // returns x^5; x = [0, 1]
+vec3 draw_grid(vec2 uv);
+float it(float time, float duration, float hold); // it: interpolate time
+float it(float time, float duration);             // returns float = [0, 1]  
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // normalised from -1 to 1 in the y axis
+    vec2 uv = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
+    const float speed_multiplier = 1.5;
+    float time = mod(iTime * speed_multiplier, 52.0);
+    
+    vec3 col;
+    
+    // test normals
+    /**   
+    if(length(uv + 1.0) < 1.0)
+       col = vec3(1);
+    **/
+
+    // First scene: default uv and the ball
+    if (time < 5.0) {
+        vec2 uv2 = fragCoord/iResolution.xy;
+        col = 0.5 + 0.5*cos(iTime+uv2.xyx+vec3(0,2,4)); // the default bg of shadertoy
+            
+        float circlePos = mix(1.5, 0.0, it(time, 2.));
+        float circleSize = mix(0.1, 4.0, it(time, 3.0, 2.0)); // 3s -> dur, 
+                                                              // 2s -> wait
+
+        col = mix(vec3(0.7), 
+                  col, 
+                  smoothstep(circleSize - 0.02, 
+                             circleSize, 
+                             length(uv + circlePos)));        
+    } else if (time < 12.0) { // animate the grid
+        time -= 5.; // reset time to 0 for easy interpolation of time
+        col = vec3(0.7); // default bg colour 
+        
+        // the big grid
+        const vec3 grid_colour = vec3(0.55);
+        float grid_space = 0.25;
+        float grid_thickness = 0.015;
+        
+        // simulate a growing circle, and draw(fade in) the grid that way
+        float c = mix(-1.0, 10.5, it(time, 4.0, 0.)); // c is the circle size
+        float d = smoothstep(c, c + .01, length(uv + 2.0)); // d is the circle for vertical lines of big grid
+        c = mix(-1.0, 10.5, it(time, 4.0, 1.));
+        float e = smoothstep(c, c + .01, length(uv - 2.0)); // circle for horizontal of big grid
+
+        if (mod(uv.y, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, d);
+        else if (mod(uv.x, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, e);
+        
+        // the smol grid
+        grid_space = 0.05;
+        grid_thickness = 0.0075;
+        
+        c = mix(-1.0, 10.5, it(time, 4.0, 3.));
+        d = smoothstep(c, c + .01, length(uv + 2.0));
+        c = mix(-1.0, 10.5, it(time, 4.0, 2.));
+        e = smoothstep(c, c + .01, length(uv - 2.0));
+
+        if (mod(uv.x, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, e);
+        else if (mod(uv.y, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, d);
+            
+    } else if (time < 40.0) { // the morphing of functions
+        time -= 12.;
+        col = draw_grid(uv);
+        // total time = 40 - 12 = 28
+        // 28 / 5 = 5.6s each function
+        // 5.6 - 1. = 4.6s, 1s is breathing room 
+        const float e_time = 4.6;
+        
+        // no i did not manually set this colours, I used: https://addons.mozilla.org/en-US/firefox/addon/shadertoy-unofficial-plugin/
+        const vec3 green = vec3(0.149,0.635,0.412);
+        const vec3 red = vec3(0.839,0.035,0.196);
+        const vec3 blue = vec3(0,0,1);
+        const vec3 violet = vec3(0.596,0.039,0.655);
+        const vec3 white = vec3(0.965,0.961,0.957);
+        const vec3 black = vec3(0.141,0.122,0.192);
+        
+        // the function morphing is explained here:
+        // https://www.shadertoy.com/view/wf2Bz3 
+
+        if (time < e_time) { // the y = x function linearly comes
+            vec2 pos1 = vec2(uv.x, f0(uv.x));
+            float q = smoothstep(0.0, 0.015, distance(uv, pos1));
+            vec3  r = mix(blue, col, q);
+            float s = smoothstep(0.9,1.0, length((uv-2.) / (time * 2.))); // me want linear here
+            col = mix(r, col, s);
+        } else if (time < 2. * e_time) { // todo: make the following branches a function call.
+            time -= e_time;
+            vec2 pos1 = vec2(uv.x, f0(uv.x));
+            vec2 pos2 = vec2(uv.x, f1(uv.x));
+            
+            float a = it(time, e_time - 1.);
+            
+            vec2 target = mix(pos1, pos2, a);
+            
+            float c = distance(uv, target);
+            float d = smoothstep(0.0, 0.015, c);
+            
+            vec3 line_colour = mix(blue, white, a);
+            col = mix(line_colour, col, d);
+        } else if (time < 3. * e_time) {
+            time -= 2. * e_time;
+            vec2 pos1 = vec2(uv.x, f1(uv.x));
+            vec2 pos2 = vec2(uv.x, f2(uv.x));
+            
+            float a = it(time, e_time - 1.);
+            
+            vec2 target = mix(pos1, pos2, a);
+            
+            float c = distance(uv, target);
+            float d = smoothstep(0.0, 0.015, c);
+            
+            vec3 line_colour = mix(white, red, a);
+            col = mix(line_colour, col, d);
+        } else if (time < 4. * e_time) {
+            time -= 3. * e_time;
+            vec2 pos1 = vec2(uv.x, f2(uv.x));
+            vec2 pos2 = vec2(uv.x, f3(uv.x));
+            
+            float a = it(time, e_time - 1.);
+            
+            vec2 target = mix(pos1, pos2, a);
+            
+            float c = distance(uv, target);
+            float d = smoothstep(0.0, 0.015, c);
+            
+            vec3 line_colour = mix(red, green, a);
+            col = mix(line_colour, col, d);
+        } else {
+            time -= 4. * e_time;
+            vec2 pos1 = vec2(uv.x, f3(uv.x));
+            vec2 pos2 = vec2(uv.x, f4(uv.x));
+            
+            float a = it(time, e_time - 1.);
+            
+            vec2 target = mix(pos1, pos2, a);
+            
+            float c = distance(uv, target);
+            float d = smoothstep(0.0, 0.015, c);
+            
+            vec3 line_colour = mix(green, violet, a);
+            vec3 final_line = mix(line_colour, col, d);
+            
+            float fade = it(time, 5., 3.6);
+            col = mix(final_line, col, fade);
+        }
+        
+    } else if (time < 47.0) { // remove the grid
+        time -= 40.;
+        col = draw_grid(uv);
+        
+        // grid
+        const vec3 grid_colour = vec3(0.7);
+        float grid_space = 0.05;
+        float grid_thickness = 0.0075;
+        
+        float c = mix(-1.0, 10.5, it(time, 4.0));
+        float d = smoothstep(c,
+                             c + .01,
+                             length(uv + 2.0));
+        c = mix(-1.0, 10.5, it(time, 4.0, 1.));
+        float e = smoothstep(c,
+                             c + .01,
+                             length(uv - 2.0));
+                     
+        // the smol grid
+        if (mod(uv.x, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, e);
+        else if (mod(uv.y, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, d);
+
+        grid_space = 0.25;
+        grid_thickness = 0.015;
+                
+        // simulate a growing circle, and draw(fade in) the grid that way
+        c = mix(-1.0, 10.5, it(time, 4.0, 3.));
+        d = smoothstep(c,
+                       c + .5,
+                       length(uv + 2.0));
+        c = mix(-1.0, 10.5, it(time, 4.0, 2.));
+        e = smoothstep(c,
+                       c + .5,
+                       length(uv - 2.0));
+
+        // the big grid
+        if (mod(uv.y, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, d);
+        else if (mod(uv.x, grid_space) > grid_space - grid_thickness)
+            col = mix(grid_colour, col, e);
+    } else {
+        time -= 46.0;
+        vec2 uv2 = fragCoord/iResolution.xy;
+        col = 0.5 + 0.5*cos(iTime+uv2.xyx+vec3(0,2,4));
+        
+        float circlePos = mix(0.0, 1.5, it(time, 2. , 3.0));
+        float circleSize = mix(3.5, 0.1, it(time, 3.0)); // the circle shriks
+
+        col = mix(vec3(0.7), 
+                  col, 
+                  smoothstep(circleSize - 0.02, 
+                             circleSize, 
+                             length(uv - circlePos)));
+    }
+    
+    fragColor = vec4(col, 1);
+}
+
+vec3 draw_grid(vec2 uv)
+{
+    vec3 res = vec3(0.7);
+
+    vec3 grid_colour = vec3(0.55);
+    float grid_space = 0.25;
+    float grid_thickness = 0.015;
+    
+    // the big grid
+    if (mod(uv.y, grid_space) > grid_space - grid_thickness)
+        res = grid_colour;
+    else if (mod(uv.x, grid_space) > grid_space - grid_thickness)
+        res = grid_colour;
+    
+    // the smol grid
+    grid_space = 0.05;
+    grid_thickness = 0.0075;
+    
+    if (mod(uv.y, grid_space) > grid_space - grid_thickness)
+        res = grid_colour;
+    else if (mod(uv.x, grid_space) > grid_space - grid_thickness)
+        res = grid_colour;
+
+    return res;
+}
+
+
+float ease(float x)
+{
+    return pow(clamp(x, 0.0, 1.0), 5.0);
+}
+
+float it(float time, float duration, float hold)
+{
+    float a = clamp((time - hold) / duration, 0.0, 1.0);
+    return ease(a);
+}
+
+float it(float time, float duration)
+{
+    return it(time, duration, 0.0);
+}
