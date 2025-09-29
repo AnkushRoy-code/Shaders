@@ -1,3 +1,5 @@
+// https://www.shadertoy.com/view/WcjBWD
+
 float f0(float x) { return x; } // take a guess.... you are probably correct
 float f1(float x) { return x * x; }
 float f2(float x) { return x * x * x; }

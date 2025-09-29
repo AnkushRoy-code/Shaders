@@ -1,3 +1,5 @@
+// https://www.shadertoy.com/view/3cSBDh
+
 // I with this shader am trying to get familiar with glsl and the maths behind 
 // shaders.
 

@@ -1,3 +1,4 @@
+// https://www.shadertoy.com/view/wf2Bz3
 float ease(float t){ return pow(t, 3.0); }
 
 float f(float x) { return 1. / x; }
