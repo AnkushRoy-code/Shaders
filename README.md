@@ -17,5 +17,6 @@ All my [ShadetToy](shadertoy.com) shaders will be here, Just click on the links 
 
 # [Infinity Cave](https://www.shadertoy.com/view/WfSBWc)
 - This is the coolest thing I have built now. Uses ray-marching!
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/fc245893-fef1-4e9c-9faa-4bc7c81d762a" />
 
 That is all there is to it. I am currently learning to do Raymarching. Probably come up with somethign cool there. TYSM for checking this repo out!
